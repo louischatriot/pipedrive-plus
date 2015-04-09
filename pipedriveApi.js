@@ -57,4 +57,76 @@ PipedriveAPI.findOrganizations = function (name, _callback) {
 };
 
 
+/*
+ * Get the current user
+ */
+PipedriveAPI.getCurrentUser = function (_callback) {
+  var callback = _callback || function () {}
+    ;
+
+  async.waterfall([
+    async.apply(PipedriveAPI.getToken)
+  , function (cb) {
+      Zepto.ajax({ url: 'https://api.pipedrive.com/v1/users?api_token=' + PipedriveAPI.token, complete: function (xhr) {
+        var res = { success: false };
+        try {
+          res = JSON.parse(xhr.response);
+        } catch (e) {}   // Pokemon exception handling! Because default value already defined above
+        if (!res.success || !res.data || res.data.length === 0) {
+          return callback(null);
+        } else {
+          for (var i = 0; i < res.data.length; i += 1) {
+            if (res.data[i].is_you === true) {
+              return callback(res.data[i]);
+            }
+          }
+          return callback(null);   // Not found
+        }
+      } });
+  }
+  ]);
+}
+
+
+/*
+ * Create a new organization with its name and owner
+ */
+PipedriveAPI.createOrganization = function (name, ownerId, _callback) {
+  var before = PipedriveAPI.token ? function (cb) { return cb(); } : PipedriveAPI.getToken   // Should really use async ...
+    , callback = _callback || function () {}
+    ;
+
+  before(function () {
+    Zepto.ajax({ type: 'POST', url: 'https://api.pipedrive.com/v1/organizations?api_token=' + PipedriveAPI.token, data: { name: name, owner_id: ownerId }, complete: function (xhr) {
+      var res = { success: false };
+      try {
+        res = JSON.parse(xhr.response).data;
+      } catch (e) {}
+      console.log(res);
+      return callback(res);
+    } });
+  });
+};
+
+
+/*
+ * Create a new person with its name and owner
+ */
+PipedriveAPI.createPerson = function (name, ownerId, orgId, _callback) {
+  var before = PipedriveAPI.token ? function (cb) { return cb(); } : PipedriveAPI.getToken   // Should really use async ...
+    , callback = _callback || function () {}
+    ;
+
+  before(function () {
+    Zepto.ajax({ type: 'POST', url: 'https://api.pipedrive.com/v1/persons?api_token=' + PipedriveAPI.token, data: { name: name, owner_id: ownerId, org_id: orgId }, complete: function (xhr) {
+      var res = { success: false };
+      try {
+        res = JSON.parse(xhr.response).data;
+      } catch (e) {}
+      console.log(res);
+      return callback(res);
+    } });
+  });
+};
+
 

@@ -52,10 +52,22 @@ $actionPane.append($peopleBox);
 var $orgBox = $('<div id="organizations-box" style="margin-top: 20px;"></div>');
 $actionPane.append($orgBox);
 
+var $actionBox = $('<div id="action-box" style="margin-top: 20px;"></div>');
+$actionPane.append($actionBox);
+
+// Keep track of actions to be taken
+// This whole code is absolutely ugly ...
+// For now the only case that is be taken care of is creating a new user and organization
+var organizationToCreate = null
+  , organizationId = null
+  , personToCreate = null
+  , personId = null
+  , userId = null
+  ;
 
 // Check we don't already know this person
 async.waterfall([
-  function (cb) {
+  function (cb) {   // Checking against existing people
     PipedriveAPI.findPeople(name, function (peopleFound) {
       console.log("PEOPLE FOUND");
       console.log(peopleFound);
@@ -65,18 +77,20 @@ async.waterfall([
         $peopleBox.append('<a target="_blank" href="https://app.pipedrive.com/person/details/' + peopleFound.data[0].id + '">' + name + "</a> is already in Pipedrive. Please make sure that you really do want to update his profile.");
       } else {
         $peopleBox.append(name + ' is not in Pipedrive and will be created');
+        personToCreate = name;
       }
       return cb();
     });
   }
-, function (cb) {
+, function (cb) {   // Checking against existing orgs
     PipedriveAPI.findOrganizations(workData[0].company, function (orgsFound) {
       console.log("ORGANIZATIONS FOUND");
       console.log(orgsFound);
 
       // Not treating the case of multiple namesakes, hackathon ...
       if (orgsFound.data && orgsFound.data.length === 1) {
-        $orgBox.append("Found organization " + workData[0].company + " in Pipedrive");
+        $orgBox.append('Found organization ' + orgsFound.data[0].name + ' in Pipedrive.');
+        
       } else if (orgsFound.data && orgsFound.data.length > 1) {
         $orgBox.append("Found " + orgsFound.data.length + " organizations, please pick the right one:");
         var select = "<select>";
@@ -87,13 +101,57 @@ async.waterfall([
         $orgBox.append(select);
       } else {
         $orgBox.append("Organization " + workData[0].company + " not in Pipedrive, will be created");
+        organizationToCreate = workData[0].company;
       }
       return cb();
     });
   }
+, function (cb) {   // Getting current user
+    PipedriveAPI.getCurrentUser(function (user) {
+      if (user) { userId = user.id; }
+      return cb();
+    });
+  }
+, function (cb) {   // Action box
+    $actionBox.append('<input type="button" value="Create contact">');
+    $actionBox.find('input[type="button"]').on('click', createContact);
+  }
 ]);
 
 
+
+function createContact () {
+  console.log('CREATING CONTACT');
+
+  async.waterfall([
+    function (cb) {   // Creating organization if needed
+      if (organizationToCreate !== null && userId !== null) {
+        PipedriveAPI.createOrganization(organizationToCreate, userId, function (createdOrg) {
+          organizationId = createdOrg ? createdOrg.id : null;
+          return cb();
+        });
+      } else { return cb(); }
+    }
+  , function (cb) {   // Creating person if needed
+      if (personToCreate !== null && userId !== null && organizationId !== null) {
+        PipedriveAPI.createPerson(personToCreate, userId, organizationId, function (createdPerson) {
+          personId = createdPerson ? createdPerson.id : null;
+          return cb();
+        });
+      } else { return cb(); }
+    }
+  , function (cb) {
+      var message = 'Contact created, don\'t forget to add an activity!<br><ul style="position: relative; left: 20px; list-style-type: disc;"><li>';
+      message += 'Organization: <a href="https://app.pipedrive.com/org/details/' + organizationId + '">' + organizationToCreate + '</a>'
+      message += "</li><li>";
+      message += 'Person: <a href="https://app.pipedrive.com/person/details/' + personId + '">' + personToCreate + '</a>'
+      message += "</li></ul>";
+      console.log(message);
+      $actionBox.html(message);
+    }
+  ]);
+
+}
 
 
 
