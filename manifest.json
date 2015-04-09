@@ -19,5 +19,11 @@
   "background": {
     "scripts": ["eventPage.js"],
     "persistent": false
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.pipedrive.com/mailbox/*"],
+      "js": ["lib/underscore-min.js", "lib/async.js", "lib/jquery-2.0.3.min.js","contentScript_pipedriveMailbox.js"]
+    }
+  ]
 }
