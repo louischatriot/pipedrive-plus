@@ -7,15 +7,6 @@ var i, j, $h5, $header, $parent, $date
   , experienceHeaders = $('#background-experience header')
   ;
 
-
-console.log('We are inside LinkedIn');
-console.log(PipedriveAPI);
-
-//chrome.runtime.sendMessage({ now: 'Way back' });
-
-console.log("==========================");
-
-
 // Scraping data from LinkedIn
 for (i = 0; i < experienceHeaders.length; i += 1) {
   workDatum = {};
@@ -41,8 +32,6 @@ for (i = 0; i < experienceHeaders.length; i += 1) {
 }
 
 var name = $('span.full-name').text();
-
-console.log(name);
 console.log(workData);
 
 // Action tab
@@ -50,13 +39,63 @@ var $actionPane = $('<div id="actionPane" style="position:fixed; top: 0px; right
 $actionPane.css('z-index', '10001');
 $actionPane.css('border-left', 'solid black 2px');
 $actionPane.css('transition', 'left 300ms');
+$actionPane.css('padding', '15px');
+$actionPane.append('<div style="font-size: 30px;">Pipedrive Plus</div>');
 $('body').append($actionPane);
 
 // Animation doesn't work ...
 $actionPane.css('left', '70%');
 
+var $peopleBox = $('<div id="people-box" style="margin-top: 20px;"></div>');
+$actionPane.append($peopleBox);
 
-// PipedriveAPI.findPeople(name);
+var $orgBox = $('<div id="organizations-box" style="margin-top: 20px;"></div>');
+$actionPane.append($orgBox);
+
+
+// Check we don't already know this person
+async.waterfall([
+  function (cb) {
+    PipedriveAPI.findPeople(name, function (peopleFound) {
+      console.log("PEOPLE FOUND");
+      console.log(peopleFound);
+
+      // Not treating the case of multiple namesakes, hackathon ...
+      if (peopleFound.data && peopleFound.data.length >= 1) {
+        $peopleBox.append('<a target="_blank" href="https://app.pipedrive.com/person/details/' + peopleFound.data[0].id + '">' + name + "</a> is already in Pipedrive. Please make sure that you really do want to update his profile.");
+      } else {
+        $peopleBox.append(name + ' is not in Pipedrive and will be created');
+      }
+      return cb();
+    });
+  }
+, function (cb) {
+    PipedriveAPI.findOrganizations(workData[0].company, function (orgsFound) {
+      console.log("ORGANIZATIONS FOUND");
+      console.log(orgsFound);
+
+      // Not treating the case of multiple namesakes, hackathon ...
+      if (orgsFound.data && orgsFound.data.length === 1) {
+        $orgBox.append("Found organization " + workData[0].company + " in Pipedrive");
+      } else if (orgsFound.data && orgsFound.data.length > 1) {
+        $orgBox.append("Found " + orgsFound.data.length + " organizations, please pick the right one:");
+        var select = "<select>";
+          orgsFound.data.forEach(function (org) {
+            select += '<option value="' + org.id + '">' + org.name + '</option>';
+          });
+        select += "</select>";
+        $orgBox.append(select);
+      } else {
+        $orgBox.append("Organization " + workData[0].company + " not in Pipedrive, will be created");
+      }
+      return cb();
+    });
+  }
+]);
+
+
+
+
 
 
 

@@ -21,7 +21,7 @@ PipedriveAPI.getToken = function (_callback) {
  * Find people matching the name
  */
 PipedriveAPI.findPeople = function (name, _callback) {
-  var before = PipedriveAPI.token ? function () {} : PipedriveAPI.getToken   // Should really use async ...
+  var before = PipedriveAPI.token ? function (cb) { return cb(); } : PipedriveAPI.getToken   // Should really use async ...
     , callback = _callback || function () {}
     ;
 
@@ -31,11 +31,30 @@ PipedriveAPI.findPeople = function (name, _callback) {
       try {
         res = JSON.parse(xhr.response);
       } catch (e) {}   // Pokemon exception handling! Because default value already defined above
-      console.log(res);
-
-      callback();
+      return callback(res);
     } });
   });
 };
+
+
+/*
+ * Find organizations matching the name
+ */
+PipedriveAPI.findOrganizations = function (name, _callback) {
+  var before = PipedriveAPI.token ? function (cb) { return cb(); } : PipedriveAPI.getToken   // Should really use async ...
+    , callback = _callback || function () {}
+    ;
+
+  before(function () {
+    Zepto.ajax({ url: 'https://api.pipedrive.com/v1/organizations/find?api_token=' + PipedriveAPI.token + '&term=' + name, complete: function (xhr) {
+      var res = { success: false };
+      try {
+        res = JSON.parse(xhr.response);
+      } catch (e) {}   // Pokemon exception handling! Because default value already defined above
+      return callback(res);
+    } });
+  });
+};
+
 
 

@@ -23,9 +23,11 @@ function buttonClicked() {
     
     console.log(tab);
 
-    chrome.tabs.executeScript(tab.id, { file: 'pipedriveApi.js' }, function () {
-      chrome.tabs.executeScript(tab.id, { file: 'insideLinkedIn.js' }, function(res) {
-        console.log(res);
+    chrome.tabs.executeScript(tab.id, { file: 'lib/async.js' }, function () {
+      chrome.tabs.executeScript(tab.id, { file: 'pipedriveApi.js' }, function () {
+        chrome.tabs.executeScript(tab.id, { file: 'insideLinkedIn.js' }, function(res) {
+          console.log(res);
+        });
       });
     });
 
